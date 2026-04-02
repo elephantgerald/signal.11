@@ -1,0 +1,13 @@
+version: '3.8'
+services:
+  server:
+    build:
+      context: ..
+      dockerfile: src/Signal11.Server/Dockerfile
+    ports:
+      - "5000:8080"
+    volumes:
+      - ../dev/seed/games:/app/data/games
+      - ../dev/seed/boards:/app/data/boards
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
