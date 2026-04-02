@@ -1,0 +1,12 @@
+@startuml system-context
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title Signal 11 — System Context (C4 Level 1)
+
+Person(player, "Player", "A human controlling a robot on the board")
+
+System(signal11, "Signal 11", "Robot programming board game server and clients")
+
+Rel(player, signal11, "Programs robots, views board state", "REPL / HTTP")
+
+@enduml

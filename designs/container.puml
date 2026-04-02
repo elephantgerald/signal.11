@@ -1,0 +1,23 @@
+@startuml container
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title Signal 11 — Containers (C4 Level 2)
+
+Person(player, "Player")
+
+System_Boundary(signal11, "Signal 11") {
+  Container(repl, "Signal11.Client.Repl", ".NET 10 Console", "Zork-style CLI — IUserInput, IDisplay")
+  Container(server, "Signal11.Server", "ASP.NET Core 10", "REST API — game lifecycle, persistence")
+  Container(domain, "Signal11.Domain", ".NET 10 Class Library", "Pure game engine — IRandom, IClock")
+}
+
+ContainerDb(games, "Game Store", "JSON on disk", "data/games/{id}/state.json + tokens.json + board.bin")
+ContainerDb(boards, "Board Store", "Binary files", "boards/*.board — SN11 binary format")
+
+Rel(player, repl, "Types commands", "stdin/stdout")
+Rel(repl, server, "HTTP REST", "JSON")
+Rel(server, domain, "In-process calls")
+Rel(server, games, "Read/write", "File I/O")
+Rel(server, boards, "Read", "File I/O")
+
+@enduml

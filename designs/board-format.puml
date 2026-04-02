@@ -1,0 +1,32 @@
+@startuml board-format
+title Signal 11 — Board Binary Format (SN11)
+
+legend
+  Header Block
+  [4 bytes] Magic: "SN11" (0x534E3131)
+  [1 byte]  Version
+  [1 byte]  Width (cells)
+  [1 byte]  Height (cells)
+  [1 byte]  Flag count
+  [N*2 bytes] Flag positions (x, y per flag)
+
+  Data Block (width * height * 2 bytes, row-major)
+  Per cell word (16 bits):
+    bits 15-12: Floor type (4 bits)
+    bits 11-9:  Conveyor direction (3 bits)
+    bit  8:     Conveyor speed (1=express)
+    bits 7-6:   Gear (2 bits)
+    bits 5-0:   Reserved
+
+  Floor type values:
+    0=Normal  1=Pit  2=Repair  3=Double Repair
+    4-7=Flag 1-4    8-15=Start 1-8
+
+  Wall Block (width * height * 1 byte, parallel)
+  Per cell byte:
+    bit 7: N wall   bit 3: N wall laser
+    bit 6: E wall   bit 2: E wall laser
+    bit 5: S wall   bit 1: S wall laser
+    bit 4: W wall   bit 0: W wall laser
+end legend
+@enduml
