@@ -1,0 +1,33 @@
+# Normalize line endings to LF on checkin
+* text=auto eol=lf
+
+# Source
+*.cs    text diff=csharp
+*.csproj text
+*.props  text
+*.targets text
+*.sln   text eol=crlf
+
+# Data / config
+*.json  text
+*.xml   text
+*.yaml  text
+*.yml   text
+*.toml  text
+
+# Scripts and docs
+*.sh    text eol=lf
+*.md    text
+*.puml  text
+*.txt   text
+
+# Binary game data
+*.bin   binary
+
+# Common image/font binaries
+*.png   binary
+*.jpg   binary
+*.ico   binary
+*.ttf   binary
+*.woff  binary
+*.woff2 binary
