@@ -2,8 +2,9 @@ namespace Signal11.Domain;
 
 public static class BoardParser
 {
-    private const uint Magic = 0x534E3131; // "SN11"
+    private const uint Magic            = 0x534E3131; // "SN11"
     private const byte SupportedVersion = 1;
+    private const byte MaxFlags         = 4;
 
     public static Board Parse(Stream stream)
     {
@@ -18,15 +19,15 @@ public static class BoardParser
         var cellWords = new ushort[cellCount];
         for (int i = 0; i < cellCount; i++)
         {
-            byte hi = reader.ReadByte();
-            byte lo = reader.ReadByte();
+            byte hi = ReadField(reader, "cell word (high byte)");
+            byte lo = ReadField(reader, "cell word (low byte)");
             cellWords[i] = (ushort)((hi << 8) | lo);
         }
 
         // Wall block — one byte per cell, parallel to data block
         var wallBytes = new byte[cellCount];
         for (int i = 0; i < cellCount; i++)
-            wallBytes[i] = reader.ReadByte();
+            wallBytes[i] = ReadField(reader, "wall byte");
 
         for (int row = 0; row < height; row++)
         for (int col = 0; col < width; col++)
@@ -45,61 +46,77 @@ public static class BoardParser
         out (int X, int Y)[] flags)
     {
         // Magic — 4 bytes big-endian
-        uint magic = ((uint)reader.ReadByte() << 24)
-                   | ((uint)reader.ReadByte() << 16)
-                   | ((uint)reader.ReadByte() << 8)
-                   |  (uint)reader.ReadByte();
+        uint magic = ((uint)ReadField(reader, "magic byte 0") << 24)
+                   | ((uint)ReadField(reader, "magic byte 1") << 16)
+                   | ((uint)ReadField(reader, "magic byte 2") << 8)
+                   |  (uint)ReadField(reader, "magic byte 3");
 
         if (magic != Magic)
             throw new InvalidBoardException(
                 $"Bad magic bytes 0x{magic:X8}; expected 0x{Magic:X8}.");
 
-        byte version = reader.ReadByte();
+        byte version = ReadField(reader, "version");
         if (version != SupportedVersion)
             throw new UnsupportedBoardVersionException(version);
 
-        width  = reader.ReadByte();
-        height = reader.ReadByte();
+        width  = ReadField(reader, "width");
+        height = ReadField(reader, "height");
 
-        byte flagCount = reader.ReadByte();
+        if (width  == 0) throw new InvalidBoardException("Board width must be at least 1.");
+        if (height == 0) throw new InvalidBoardException("Board height must be at least 1.");
+
+        byte flagCount = ReadField(reader, "flag count");
+        if (flagCount > MaxFlags)
+            throw new InvalidBoardException(
+                $"Flag count {flagCount} exceeds maximum of {MaxFlags}.");
+
         flags = new (int, int)[flagCount];
         for (int i = 0; i < flagCount; i++)
-            flags[i] = (reader.ReadByte(), reader.ReadByte());
+        {
+            byte fx = ReadField(reader, $"flag {i + 1} X");
+            byte fy = ReadField(reader, $"flag {i + 1} Y");
+            if (fx >= width || fy >= height)
+                throw new InvalidBoardException(
+                    $"Flag {i + 1} position ({fx},{fy}) is outside board {width}×{height}.");
+            flags[i] = (fx, fy);
+        }
     }
 
     private static Cell DecodeCell(ushort word, byte wallByte)
     {
-        int floorRaw         = (word >> 12) & 0xF;  // bits 15-12
-        int conveyorDirRaw   = (word >> 9)  & 0x7;  // bits 11-9
-        bool isExpress       = ((word >> 8) & 0x1) == 1; // bit 8
-        int gear             = (word >> 6)  & 0x3;  // bits 7-6
+        int floorRaw       = (word >> 12) & 0xF;  // bits 15-12
+        int conveyorDirRaw = (word >> 9)  & 0x7;  // bits 11-9
+        bool isExpress     = ((word >> 8) & 0x1) == 1; // bit 8
+        int gear           = (word >> 6)  & 0x3;  // bits 7-6
 
-        FloorType floor;
-        int? flagNumber = null;
-        int? startIndex = null;
+        if ((word & 0x3F) != 0)
+            throw new InvalidBoardException(
+                $"Reserved bits 5–0 are non-zero (word=0x{word:X4}); possible format corruption.");
 
-        if (floorRaw >= 8)
-        {
-            floor = FloorType.Start;
-            startIndex = floorRaw - 7; // 8→1, 9→2, …, 15→8
-        }
-        else if (floorRaw >= 4)
-        {
-            floor = FloorType.Flag;
-            flagNumber = floorRaw - 3; // 4→1, 5→2, 6→3, 7→4
-        }
-        else
-        {
-            floor = (FloorType)floorRaw;
-        }
+        if (conveyorDirRaw > 4)
+            throw new InvalidBoardException(
+                $"Undefined conveyor direction value {conveyorDirRaw}.");
 
-        var walls  = DecodeWallSide(wallByte >> 4); // bits 7-4
-        var lasers = DecodeWallSide(wallByte & 0xF); // bits 3-0
+        if (gear == 3)
+            throw new InvalidBoardException(
+                $"Gear value 3 is reserved and undefined.");
+
+        CellFloor floor = floorRaw switch
+        {
+            >= 8  => new StartFloor(floorRaw - 7),   // 8→1, 9→2, …, 15→8
+            >= 4  => new FlagFloor(floorRaw - 3),     // 4→1, 5→2, 6→3, 7→4
+            0     => new NormalFloor(),
+            1     => new PitFloor(),
+            2     => new RepairFloor(),
+            3     => new DoubleRepairFloor(),
+            _     => throw new InvalidBoardException($"Unrecognised floor value {floorRaw}.")
+        };
+
+        var walls  = (WallSide)(wallByte >> 4); // bits 7-4
+        var lasers = (WallSide)(wallByte & 0xF); // bits 3-0
 
         return new Cell(
             floor,
-            flagNumber,
-            startIndex,
             (Direction)conveyorDirRaw,
             isExpress,
             gear,
@@ -108,15 +125,20 @@ public static class BoardParser
         );
     }
 
-    // Bit layout for both walls and lasers nibble:
-    //   bit 3 = N,  bit 2 = E,  bit 1 = S,  bit 0 = W
-    private static WallSide DecodeWallSide(int nibble)
+    /// <summary>
+    /// Reads one byte, wrapping <see cref="EndOfStreamException"/> into
+    /// <see cref="InvalidBoardException"/> so callers see a consistent error type.
+    /// </summary>
+    private static byte ReadField(BinaryReader reader, string fieldName)
     {
-        var side = WallSide.None;
-        if ((nibble & 0x8) != 0) side |= WallSide.North;
-        if ((nibble & 0x4) != 0) side |= WallSide.East;
-        if ((nibble & 0x2) != 0) side |= WallSide.South;
-        if ((nibble & 0x1) != 0) side |= WallSide.West;
-        return side;
+        try
+        {
+            return reader.ReadByte();
+        }
+        catch (EndOfStreamException ex)
+        {
+            throw new InvalidBoardException(
+                $"Board data truncated reading '{fieldName}'.", ex);
+        }
     }
 }

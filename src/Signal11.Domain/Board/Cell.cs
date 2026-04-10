@@ -5,9 +5,7 @@ namespace Signal11.Domain;
 /// cell word and its parallel wall byte.
 /// </summary>
 public record Cell(
-    FloorType Floor,
-    int? FlagNumber,        // 1–4, set when Floor == FloorType.Flag
-    int? StartIndex,        // 1–8, set when Floor == FloorType.Start
+    CellFloor Floor,
     Direction ConveyorDirection,
     bool IsExpress,
     int Gear,

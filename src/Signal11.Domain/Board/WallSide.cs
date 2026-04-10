@@ -1,15 +1,15 @@
 namespace Signal11.Domain;
 
 /// <summary>
-/// Which sides of a cell have a wall or laser, mirroring the bit layout
-/// of the wall byte (bits 7–4 = walls, bits 3–0 = lasers).
+/// Which sides of a cell have a wall or laser. Values match the SN11 wire
+/// nibble: bit 3 = North, bit 2 = East, bit 1 = South, bit 0 = West.
 /// </summary>
 [Flags]
 public enum WallSide
 {
     None  = 0,
-    North = 1 << 0,
-    East  = 1 << 1,
-    South = 1 << 2,
-    West  = 1 << 3,
+    North = 1 << 3,
+    East  = 1 << 2,
+    South = 1 << 1,
+    West  = 1 << 0,
 }
