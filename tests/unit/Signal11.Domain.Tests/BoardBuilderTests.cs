@@ -133,4 +133,23 @@ public class BoardBuilderTests
         Assert.Throws<ArgumentOutOfRangeException>(() => builder.AddFlag(5, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => builder.AddFlag(0, 9));
     }
+
+    [Fact]
+    public void Constructor_WidthExceeds255_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new BoardBuilder(256, 1));
+    }
+
+    [Fact]
+    public void Constructor_HeightExceeds255_ThrowsArgumentOutOfRangeException()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new BoardBuilder(1, 256));
+    }
+
+    [Fact]
+    public void AddFlag_DuplicatePosition_ThrowsArgumentException()
+    {
+        var builder = new BoardBuilder(4, 4).AddFlag(1, 2);
+        Assert.Throws<ArgumentException>(() => builder.AddFlag(1, 2));
+    }
 }

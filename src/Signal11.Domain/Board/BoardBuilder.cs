@@ -18,6 +18,8 @@ public sealed class BoardBuilder
     {
         if (width  <= 0) throw new ArgumentOutOfRangeException(nameof(width),  "Board width must be at least 1.");
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height), "Board height must be at least 1.");
+        if (width  > 255) throw new ArgumentOutOfRangeException(nameof(width),  width,  "Board width cannot exceed 255 (SN11 wire format limit).");
+        if (height > 255) throw new ArgumentOutOfRangeException(nameof(height), height, "Board height cannot exceed 255 (SN11 wire format limit).");
 
         _width  = width;
         _height = height;
@@ -67,6 +69,11 @@ public sealed class BoardBuilder
 
     private const int MaxFlags = 4;
 
+    /// <summary>
+    /// Adds a flag checkpoint at the given board coordinate.
+    /// Note: <paramref name="x"/> is the column index and <paramref name="y"/> is the row index,
+    /// which is the inverse of the <c>(row, col)</c> convention used by cell-mutation methods.
+    /// </summary>
     public BoardBuilder AddFlag(int x, int y)
     {
         if (_flags.Count >= MaxFlags)
@@ -75,6 +82,8 @@ public sealed class BoardBuilder
             throw new ArgumentOutOfRangeException(nameof(x), x, $"X must be 0–{_width - 1}.");
         if ((uint)y >= (uint)_height)
             throw new ArgumentOutOfRangeException(nameof(y), y, $"Y must be 0–{_height - 1}.");
+        if (_flags.Contains((x, y)))
+            throw new ArgumentException($"A flag at ({x}, {y}) has already been added.");
         _flags.Add((x, y));
         return this;
     }
