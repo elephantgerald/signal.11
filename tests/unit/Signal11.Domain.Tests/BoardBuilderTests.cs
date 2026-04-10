@@ -114,4 +114,15 @@ public class BoardBuilderTests
         Assert.Equal((2, 3), board.Flags[0]);
         Assert.Equal((0, 1), board.Flags[1]);
     }
+
+    [Fact]
+    public void AddFlag_FiveFlags_ThrowsArgumentException()
+    {
+        var builder = new BoardBuilder(4, 4)
+            .AddFlag(0, 0)
+            .AddFlag(1, 0)
+            .AddFlag(2, 0)
+            .AddFlag(3, 0);
+        Assert.Throws<ArgumentException>(() => builder.AddFlag(0, 1));
+    }
 }

@@ -65,8 +65,12 @@ public sealed class BoardBuilder
         return this;
     }
 
+    private const int MaxFlags = 4;
+
     public BoardBuilder AddFlag(int x, int y)
     {
+        if (_flags.Count >= MaxFlags)
+            throw new ArgumentException($"A board may have at most {MaxFlags} flags.");
         _flags.Add((x, y));
         return this;
     }
