@@ -303,9 +303,6 @@ public class BoardParserTests
     public void Parse_FlagOutOfBounds_ThrowsInvalidBoardException()
     {
         // 2×2 board; flag at (3,3) is out of bounds
-        var bad = BuildBoard(2, 2);
-        bad[7] = 1; // flagCount = 1
-        // Append out-of-bounds flag position after the existing 8-byte header
         // Build a fresh board with one in-bounds flag, then corrupt the position
         var data = BuildBoard(2, 2, flagPositions: [(0, 0)]);
         data[8]  = 3; // flag X = 3  (>= width 2)
@@ -327,6 +324,22 @@ public class BoardParserTests
     {
         // bits 11-9 = 5 (undefined)  →  0000_1010_0000_0000 = 0x0A00
         var bad = BuildBoard(1, 1, cellWords: [0x0A00]);
+        Assert.Throws<InvalidBoardException>(() => Parse(bad));
+    }
+
+    [Fact]
+    public void Parse_ReservedBitsNonZero_ThrowsInvalidBoardException()
+    {
+        // bit 0 set in reserved range (bits 5–0)  →  0x0001
+        var bad = BuildBoard(1, 1, cellWords: [0x0001]);
+        Assert.Throws<InvalidBoardException>(() => Parse(bad));
+    }
+
+    [Fact]
+    public void Parse_GearReservedValue_ThrowsInvalidBoardException()
+    {
+        // bits 7–6 = 11 (gear = 3, reserved)  →  0x00C0
+        var bad = BuildBoard(1, 1, cellWords: [0x00C0]);
         Assert.Throws<InvalidBoardException>(() => Parse(bad));
     }
 }
