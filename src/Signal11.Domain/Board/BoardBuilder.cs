@@ -71,6 +71,10 @@ public sealed class BoardBuilder
     {
         if (_flags.Count >= MaxFlags)
             throw new ArgumentException($"A board may have at most {MaxFlags} flags.");
+        if ((uint)x >= (uint)_width)
+            throw new ArgumentOutOfRangeException(nameof(x), x, $"X must be 0–{_width - 1}.");
+        if ((uint)y >= (uint)_height)
+            throw new ArgumentOutOfRangeException(nameof(y), y, $"Y must be 0–{_height - 1}.");
         _flags.Add((x, y));
         return this;
     }

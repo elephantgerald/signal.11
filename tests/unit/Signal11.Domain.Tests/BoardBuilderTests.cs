@@ -125,4 +125,12 @@ public class BoardBuilderTests
             .AddFlag(3, 0);
         Assert.Throws<ArgumentException>(() => builder.AddFlag(0, 1));
     }
+
+    [Fact]
+    public void AddFlag_OutOfBounds_ThrowsArgumentOutOfRangeException()
+    {
+        var builder = new BoardBuilder(4, 4);
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.AddFlag(5, 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => builder.AddFlag(0, 9));
+    }
 }
